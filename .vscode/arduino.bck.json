@@ -2,6 +2,5 @@
     "configuration": "cpu=atmega328old",
     "board": "arduino:avr:nano",
     "port": "COM3",
-    "programmer": "esptool",
     "sketch": "arduino\\arduino.ino"
 }
