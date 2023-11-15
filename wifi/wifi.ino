@@ -1,9 +1,10 @@
+#include <HttpClient.h>
 #include <ESP8266WiFi.h>
+#include <WiFiClientSecureBearSSL.h>
 
-// defines WIFI_SSID, WIFI_PASSWORD
+// defines WIFI_SSID, WIFI_PASSWORD, ROOT_URL
 #include "config.h"
 
-WiFiServer server(80);
 
 void setup() {
   Serial.begin(115200);
@@ -13,7 +14,31 @@ void setup() {
 }
 
 void loop() {
-  delay(1000);
+  if (WiFi.status() != WL_CONNECTED) {
+    return;
+  }
+
+  WiFiClientSecure client;
+  client.setInsecure();
+  //client.setFingerprint("c42c2e6d5dc7d65b2bde606a58498f2af8e2b09fa3d9324126eb8d1cb33d3bb0");
+  //client.allowSelfSignedCerts();
+  HttpClient https(client);
+
+  auto result = https.get(ROOT_URL, 443, "/");
+  Serial.println("Response code: " + String(result));
+  Serial.println("Response body: " + https.readString());
+  /*client.println("GET / HTTP/1.1");
+  client.println("Host: " + String(ROOT_URL));
+  client.println("Connection: close");
+  client.println();*/
+
+  while (client.connected()) {
+    if (client.available()) {
+      String line = client.readStringUntil('\n');
+      Serial.println(line);
+    }
+  }
+  delay(5000);
 }
 
 void connect() {
@@ -22,9 +47,7 @@ void connect() {
 
   Serial.print("Connecting");
   auto ledState = LOW;
-  while (WiFi.status() == WL_DISCONNECTED)
-  {
-    Serial.println("Status = " + String(WiFi.status()) + " ");
+  while (WiFi.status() == WL_DISCONNECTED) {
     digitalWrite(BUILTIN_LED, ledState);
     ledState = (ledState == LOW) ? HIGH : LOW;
     delay(500);
@@ -34,22 +57,22 @@ void connect() {
 
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("Failed to connect.");
-
     digitalWrite(BUILTIN_LED, LOW);
     delay(2000);
     digitalWrite(BUILTIN_LED, HIGH);
     return;
   }
+
   Serial.print("Connected, IP address: ");
   Serial.println(WiFi.localIP());
 }
 
 void scanNetworks() {
-  auto nt =  WiFi.scanNetworks();
+  auto nt = WiFi.scanNetworks();
   Serial.println("");
   Serial.print("Number of networks found: " + String(nt));
 
-  for (int i = 0; i< nt; i++) {
+  for (int i = 0; i < nt; i++) {
     Serial.println(WiFi.SSID(i));
   }
 }
